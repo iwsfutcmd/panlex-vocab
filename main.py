@@ -14,7 +14,7 @@ app = Sanic()
 app.static("/vocab/static", "./static")
 app.static("/favicon.ico", "./favicon.ico")
 
-@app.route("/vocab/<de_uid>/<al_uid>")
+@app.route("/<de_uid>/<al_uid>")
 async def main(request, de_uid, al_uid):
     template = Template(open("vocab.jinja2").read())
     try:
