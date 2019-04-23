@@ -27,10 +27,10 @@
       {% block pagination %}
       <nav class="pagination is-centered" role="navigation" aria-label="pagination">
         <a class="pagination-previous"
-          {% if page == 1 %} disabled {% endif %} 
+          {% if page <= 1 %} disabled {% endif %} 
           href="?page={{page - 1}}">←</a>
         <a class="pagination-next"
-          {% if page == last_page %} disabled {% endif %} 
+          {% if page >= last_page %} disabled {% endif %} 
           href="?page={{page + 1}}">→</a>
         <ul class="pagination-list">
           {% if page > (page_range + 1) %}
