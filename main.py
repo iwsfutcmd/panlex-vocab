@@ -1,4 +1,5 @@
 from collections import namedtuple
+import os
 
 from sanic import Sanic, response
 from jinja2 import Template
@@ -45,4 +46,4 @@ async def main(request, de_uid, al_uid):
     ))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0")
+    app.run(host="127.0.0.1", port=os.environ["PORT"])
