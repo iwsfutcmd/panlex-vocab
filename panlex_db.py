@@ -44,7 +44,7 @@ def query(query_string, args, one=False):
         print(cur.mogrify(query_string, args).decode())
     try:
         cur.execute(query_string, args)
-    except psycopg2.OperationalError:
+    except (psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction) as e:
         db_connect()
         cur.execute(query_string, args)
     if one:
@@ -89,7 +89,10 @@ def get_exprs(uid):
 
 def get_translated_page(de_uid, al_uid, pageno):
     exprs = get_exprs(de_uid)[pageno]
-    trans_results = query(open("translate_query.sql").read(), (al_uid, [expr.id for expr in exprs]))
+    try:
+        trans_results = query(open("translate_query.sql").read(), (al_uid, [expr.id for expr in exprs]))
+    except psycopg2.errors.CheckViolation:
+        trans_results = []
     trans_dict = {expr.id: [] for expr in exprs}
     for trans in trans_results:
         trans_dict[trans.trans_expr].append(trans)
