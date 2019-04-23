@@ -1,0 +1,29 @@
+body {
+    padding: 8px;
+    /* font-size: 2rem; */
+}
+
+header {
+    display: flex;
+    align-items: center;
+    padding-block-end: 8px;
+}
+
+.title-container {
+    padding-inline-start: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    /* inline-size: max-content; */
+}
+
+/* tbody tr:nth-child(even) {
+    background: lightgrey;
+} */
+
+.pagination-link.is-current {
+    background-color: #C82521;
+    border-color: #C82521;
+}
