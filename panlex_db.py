@@ -61,27 +61,19 @@ def sort_by_script(script):
         return (not matchscript, string)
     return sortfunc
 
-def get_script(uid):
+def get_langvar(uid):
     try:
-        return LANGVAR_CACHE[uid].script_expr_txt
+        return LANGVAR_CACHE[uid]
     except KeyError:
         print("fetching langvar data for " + uid)
         LANGVAR_CACHE[uid] = query(open("langvar_query.sql").read(), (uid,), one=True)
-        return get_script(uid)
-
-def get_langvar_name(uid):
-    try:
-        return LANGVAR_CACHE[uid].name_expr_txt
-    except KeyError:
-        print("fetching langvar data for " + uid)
-        LANGVAR_CACHE[uid] = query(open("langvar_query.sql").read(), (uid,), one=True)
-        return get_langvar_name(uid)
+        return get_langvar(uid)
 
 def get_exprs(uid):
     try:
         return EXPR_CACHE[uid]
     except KeyError:
-        script = get_script(uid)
+        script = get_langvar(uid).script_expr_txt
         print("fetching exprs for " + uid)
         exprs = sorted(all_expr(uid), key=lambda x: sort_by_script(script)(x.txt_degr))
         EXPR_CACHE[uid] = [exprs[i:i + PAGE_SIZE] for i in range(0, len(exprs), PAGE_SIZE)]
