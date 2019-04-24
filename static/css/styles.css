@@ -1,6 +1,5 @@
 body {
     padding: 8px;
-    /* font-size: 2rem; */
 }
 
 header {
@@ -14,14 +13,6 @@ header {
     display: flex;
     flex-direction: column;
 }
-
-main {
-    /* inline-size: max-content; */
-}
-
-/* tbody tr:nth-child(even) {
-    background: lightgrey;
-} */
 
 .pagination-link.is-current {
     background-color: #C82521;
