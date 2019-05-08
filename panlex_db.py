@@ -87,6 +87,9 @@ SCRIPT_ALIAS_RE = {
     "Jamo": r"\p{Hang}",
     "Jpan": r"\p{Hani}|\p{Hira}|\p{Kana}",
     "Kore": r"\p{Hani}|\p{Hang}",
+    "Zmth": None,
+    "Zsye": None,
+    "Zsym": None,
 }
 
 def db_connect():
@@ -147,9 +150,14 @@ def sort_by_script(script):
     except KeyError:
         matchre = r"\p{" + script + r"}"
 
-    def sortfunc(string):
-        matchscript = bool(re.match(matchre, string))
-        return (not matchscript, string)
+    if matchre is None:
+        def sortfunc(string):
+            return string
+    else:
+        def sortfunc(string):
+            matchscript = bool(re.match(matchre, string))
+            return (not matchscript, string)
+
     return sortfunc
 
 def get_langvar(uid):
