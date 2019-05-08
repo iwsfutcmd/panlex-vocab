@@ -30,7 +30,7 @@ async def main(request, de_uid, al_uid=""):
     except AttributeError:
         al_lang = ""
     try:
-        trn_list = panlex_db.get_translated_page(de_uid, al_uid, page - 1)
+        trn_list = panlex_db.get_translated_page(de_uid, al_uid, page)
     except (IndexError, AttributeError) as e:
         trn_list = []
     return response.html(template.render(

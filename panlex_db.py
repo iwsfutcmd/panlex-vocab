@@ -82,6 +82,8 @@ order by
 """
 
 SCRIPT_RE = {
+    "Blis": None,
+    "Geok": r"\p{Geor}",
     "Hanb": r"\p{Hani}|\p{Bopo}",
     "Hans": r"\p{Hani}",
     "Hant": r"\p{Hani}",
@@ -106,7 +108,7 @@ def query(query_string, args, one=False):
         print(cur.mogrify(query_string, args).decode())
     try:
         cur.execute(query_string, args)
-    except (psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction) as e:
+    except (psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction):
         db_connect()
         cur.execute(query_string, args)
     try:
@@ -144,9 +146,6 @@ def refresh_expr_cache_langvar(uid):
     cur.copy_from(f, 'uid_expr', columns=('uid','idx','id','txt'))
     f.close()
 
-def escape_for_copy(txt):
-    return re.sub(r'\\', r'\\\\', txt)
-
 def sort_by_script(script):
     try:
         matchre = SCRIPT_RE[script]
@@ -162,6 +161,9 @@ def sort_by_script(script):
             return (not matchscript, string)
 
     return sortfunc
+
+def escape_for_copy(txt):
+    return re.sub(r'\\', r'\\\\', txt)
 
 def get_langvar(uid):
     try:
