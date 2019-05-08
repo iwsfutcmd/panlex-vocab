@@ -81,6 +81,14 @@ order by
   trans_quality desc
 """
 
+SCRIPT_ALIAS_RE = {
+    "Hanb": r"\p{Hani}|\p{Bopo}",
+    "Hrkt": r"\p{Hira}|\p{Kana}",
+    "Jamo": r"\p{Hang}",
+    "Jpan": r"\p{Hani}|\p{Hira}|\p{Kana}",
+    "Kore": r"\p{Hani}|\p{Hang}",
+}
+
 def db_connect():
     global conn, cur
     conn = psycopg2.connect(dbname='plx')
@@ -134,8 +142,13 @@ def escape_for_copy(txt):
     return re.sub(r'\\', r'\\\\', txt)
 
 def sort_by_script(script):
+    try:
+        matchre = SCRIPT_ALIAS_RE[script]
+    except KeyError:
+        matchre = r"\p{" + script + r"}"
+
     def sortfunc(string):
-        matchscript = bool(re.match(r"\p{" + script + r"}", string))
+        matchscript = bool(re.match(matchre, string))
         return (not matchscript, string)
     return sortfunc
 
