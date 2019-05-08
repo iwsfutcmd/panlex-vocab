@@ -83,6 +83,8 @@ order by
 
 SCRIPT_RE = {
     "Hanb": r"\p{Hani}|\p{Bopo}",
+    "Hans": r"\p{Hani}",
+    "Hant": r"\p{Hani}",
     "Hrkt": r"\p{Hira}|\p{Kana}",
     "Jamo": r"\p{Hang}",
     "Jpan": r"\p{Hani}|\p{Hira}|\p{Kana}",
@@ -128,7 +130,8 @@ def refresh_expr_cache():
 def refresh_expr_cache_langvar(uid):
     print("fetching exprs for " + uid)
     script = get_langvar(uid).script_expr_txt
-    exprs = sorted(query(EXPR_QUERY, (uid,)), key=lambda x: sort_by_script(script)(x.txt_degr))
+    sortfunc = sort_by_script(script)
+    exprs = sorted(query(EXPR_QUERY, (uid,)), key=lambda x: sortfunc(x.txt_degr))
 
     copy = ''
 
