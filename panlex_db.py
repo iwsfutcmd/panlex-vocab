@@ -188,11 +188,13 @@ def get_page_count(uid):
 def get_translated_page(de_uid, al_uid, pageno):
     exprs = get_expr_page(de_uid, pageno)
 
-    try:
+    if al_uid != "":
         trans_results = query(TRANSLATE_QUERY, (al_uid, [expr.id for expr in exprs]))
-    except psycopg2.errors.CheckViolation:
+    else:
         trans_results = []
+
     trans_dict = {expr.id: [] for expr in exprs}
     for trans in trans_results:
         trans_dict[trans.trans_expr].append(trans)
+
     return [(expr, trans_dict[expr.id]) for expr in exprs]
