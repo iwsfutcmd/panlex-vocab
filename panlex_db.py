@@ -81,7 +81,7 @@ order by
   trans_quality desc
 """
 
-SCRIPT_ALIAS_RE = {
+SCRIPT_RE = {
     "Hanb": r"\p{Hani}|\p{Bopo}",
     "Hrkt": r"\p{Hira}|\p{Kana}",
     "Jamo": r"\p{Hang}",
@@ -146,7 +146,7 @@ def escape_for_copy(txt):
 
 def sort_by_script(script):
     try:
-        matchre = SCRIPT_ALIAS_RE[script]
+        matchre = SCRIPT_RE[script]
     except KeyError:
         matchre = r"\p{" + script + r"}"
 
