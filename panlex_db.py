@@ -83,11 +83,7 @@ order by
 
 def db_connect():
     global conn, cur
-
-    conn = psycopg2.connect(
-        dbname='plx',
-        host='localhost')
-
+    conn = psycopg2.connect(dbname='plx')
     cur = conn.cursor(cursor_factory=NamedTupleCursor)
 
 db_connect()
