@@ -1,40 +1,93 @@
 import subprocess
 from operator import attrgetter
+import os
+import math
+from io import StringIO
 
 import regex as re
 
-import keyring
 import psycopg2
 from psycopg2.extras import NamedTupleCursor
-import getpass
 
-
-USERNAME = getpass.getuser()
 DEBUG = False
 
-EXPR_CACHE = {}
 LANGVAR_CACHE = {}
+PAGE_COUNT_CACHE = {}
 PAGE_SIZE = 50
+
+LANGVAR_QUERY = """
+select
+  langvar.lang_code,
+  expr.txt as name_expr_txt,
+  uid(langvar.lang_code, langvar.var_code),
+  langvar.var_code,
+  script_expr.txt as script_expr_txt
+from
+  langvar
+  inner join expr on expr.id = langvar.name_expr
+  inner join expr as script_expr on script_expr.id = langvar.script_expr
+where
+  uid(langvar.lang_code, langvar.var_code) = %s
+"""
+
+EXPR_QUERY = """
+select
+  expr.id,
+  expr.txt,
+  expr.txt_degr
+from
+  expr
+where
+  expr.langvar = uid_langvar(%s)
+"""
+
+EXPR_PAGE_QUERY = """
+select
+  uid_expr.id,
+  uid_expr.txt
+from
+  uid_expr
+where
+  uid_expr.uid = %s
+  and
+  uid_expr.idx > %s
+  and
+  uid_expr.idx <= %s
+order by
+  uid_expr.idx
+"""
+
+TRANSLATE_QUERY = """
+select
+  expr.id,
+  expr.txt,
+  denotationsrc.expr as trans_expr,
+  grp_quality_score(
+    array_agg(denotation.grp),
+    array_agg(denotation.quality)
+  ) as trans_quality
+from
+  expr
+  inner join denotationx as denotation on denotation.expr = expr.id
+  inner join denotationx as denotationsrc on denotationsrc.meaning = denotation.meaning
+  and denotationsrc.expr != denotation.expr
+where
+  expr.langvar = uid_langvar(%s)
+  and denotationsrc.expr = any(%s)
+group by
+  expr.id,
+  denotationsrc.expr
+order by
+  trans_quality desc
+"""
 
 def db_connect():
     global conn, cur
-    try:
-        subprocess.run(['autossh', '-M 20000', '-f', '-NT', '-L 5432:localhost:5432', 'db.panlex.org'])
-    except FileNotFoundError:
-        pass
-    try:
-        conn = psycopg2.connect(
-            dbname='plx',
-            user=USERNAME,
-            password=keyring.get_password('panlex_db', USERNAME),
-            host='localhost')
-    except psycopg2.OperationalError:
-        keyring.set_password('panlex_db', USERNAME, getpass.getpass('Enter PanLex db password: '))
-        conn = psycopg2.connect(
-            dbname='plx',
-            user=USERNAME,
-            password=keyring.get_password('panlex_db', USERNAME),
-            host='localhost')
+
+    conn = psycopg2.connect(
+        dbname='plx',
+        host='localhost')
+
     cur = conn.cursor(cursor_factory=NamedTupleCursor)
 
 db_connect()
@@ -47,13 +100,42 @@ def query(query_string, args, one=False):
     except (psycopg2.OperationalError, psycopg2.errors.InFailedSqlTransaction) as e:
         db_connect()
         cur.execute(query_string, args)
-    if one:
-        return cur.fetchone()
-    else:
-        return cur.fetchall()
+    try:
+        if one:
+            return cur.fetchone()
+        else:
+            return cur.fetchall()
+    except psycopg2.ProgrammingError:
+        return None
 
-def all_expr(uid):
-    return query(open("expr_query.sql").read(), (uid,))
+def refresh_expr_cache():
+    query('truncate uid_expr', ())
+
+    uids = [x.uid for x in query('select uid(lang_code,var_code) from langvar order by 1', ())]
+
+    for uid in uids:
+        refresh_expr_cache_langvar(uid)
+
+    conn.commit()
+
+def refresh_expr_cache_langvar(uid):
+    print("fetching exprs for " + uid)
+    script = get_langvar(uid).script_expr_txt
+    exprs = sorted(query(EXPR_QUERY, (uid,)), key=lambda x: sort_by_script(script)(x.txt_degr))
+
+    copy = ''
+
+    idx = 1
+    for expr in exprs:
+        copy += '\t'.join([uid,str(idx),str(expr.id),escape_for_copy(expr.txt)]) + '\n'
+        idx = idx + 1
+
+    f = StringIO(copy)
+    cur.copy_from(f, 'uid_expr', columns=('uid','idx','id','txt'))
+    f.close()
+
+def escape_for_copy(txt):
+    return re.sub(r'\\', r'\\\\', txt)
 
 def sort_by_script(script):
     def sortfunc(string):
@@ -65,24 +147,27 @@ def get_langvar(uid):
     try:
         return LANGVAR_CACHE[uid]
     except KeyError:
-        print("fetching langvar data for " + uid)
-        LANGVAR_CACHE[uid] = query(open("langvar_query.sql").read(), (uid,), one=True)
+        #print("fetching langvar data for " + uid)
+        LANGVAR_CACHE[uid] = query(LANGVAR_QUERY, (uid,), one=True)
         return get_langvar(uid)
 
-def get_exprs(uid):
+def get_expr_page(uid, pageno):
+    last_expr = pageno * PAGE_SIZE
+    return query(EXPR_PAGE_QUERY, (uid, last_expr - PAGE_SIZE, last_expr))
+
+def get_page_count(uid):
     try:
-        return EXPR_CACHE[uid]
+        return PAGE_COUNT_CACHE[uid]
     except KeyError:
-        script = get_langvar(uid).script_expr_txt
-        print("fetching exprs for " + uid)
-        exprs = sorted(all_expr(uid), key=lambda x: sort_by_script(script)(x.txt_degr))
-        EXPR_CACHE[uid] = [exprs[i:i + PAGE_SIZE] for i in range(0, len(exprs), PAGE_SIZE)]
-        return get_exprs(uid)
+        expr_count = query('select count(*) from uid_expr where uid = %s', (uid,), True).count
+        PAGE_COUNT_CACHE[uid] = math.ceil(expr_count / PAGE_SIZE)
+        return get_page_count(uid)
 
 def get_translated_page(de_uid, al_uid, pageno):
-    exprs = get_exprs(de_uid)[pageno]
+    exprs = get_expr_page(de_uid, pageno)
+
     try:
-        trans_results = query(open("translate_query.sql").read(), (al_uid, [expr.id for expr in exprs]))
+        trans_results = query(TRANSLATE_QUERY, (al_uid, [expr.id for expr in exprs]))
     except psycopg2.errors.CheckViolation:
         trans_results = []
     trans_dict = {expr.id: [] for expr in exprs}

@@ -26,10 +26,6 @@ async def main(request, de_uid, al_uid=""):
     except AttributeError:
         de_lang = ""
     try:
-        de_expr_pages = panlex_db.get_exprs(de_uid)
-    except AttributeError:
-        de_expr_pages = [[]]
-    try:
         al_lang = panlex_db.get_langvar(al_uid)
     except AttributeError:
         al_lang = ""
@@ -42,7 +38,7 @@ async def main(request, de_uid, al_uid=""):
         al_lang=al_lang,
         trn_list=trn_list,
         page=page,
-        last_page=len(de_expr_pages),
+        last_page=panlex_db.get_page_count(de_lang),
         page_range=PAGE_RANGE,
     ))
 
