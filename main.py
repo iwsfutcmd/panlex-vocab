@@ -43,6 +43,7 @@ async def main(request, de_uid, al_uid=""):
         trn_list=trn_list,
         page=page,
         last_page=panlex_db.get_page_count(de_uid),
+        char_index=panlex_db.get_char_index(de_uid),
         page_range=PAGE_RANGE,
     ))
 

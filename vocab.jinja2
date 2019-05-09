@@ -27,10 +27,10 @@
       {% block pagination %}
       <nav class="pagination is-centered" role="navigation" aria-label="pagination">
         <a class="pagination-previous"
-          {% if page <= 1 %} disabled {% endif %} 
+          {% if page <= 1 %} disabled {% endif %}
           href="?page={{page - 1}}">←</a>
         <a class="pagination-next"
-          {% if page >= last_page %} disabled {% endif %} 
+          {% if page >= last_page %} disabled {% endif %}
           href="?page={{page + 1}}">→</a>
         <ul class="pagination-list">
           {% if page > (page_range + 1) %}
@@ -40,7 +40,7 @@
           <li><span class="pagination-ellipsis">&hellip;</span></li>
           {% endif %}
           {%- for pageno in range(
-            [page - page_range, 1]|max, 
+            [page - page_range, 1]|max,
             [page + page_range, last_page]|min + 1
           ) -%}
           <li>
@@ -57,24 +57,35 @@
           {% endif %}
         </ul>
       </nav>
+      <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+        <ul class="pagination-list">
+          {%- for entry in char_index -%}
+          <li>
+            <a class="pagination-link" href="?page={{ entry[1] }}">
+              {{ entry[0] }}
+            </a>
+          </li>
+          {%- endfor -%}
+        </ul>
+      </nav>
       {% endblock %}
 
       <table class="table is-fullwidth is-striped">
         <thead>
           <tr>
             <th>
-              <input 
-                type="text" 
-                is="panlex-language-picker" 
+              <input
+                type="text"
+                is="panlex-language-picker"
                 value="{{ de_lang.name_expr_txt }}"
                 data-uid="{{ de_lang.uid }}"
                 id="de-lang-picker"
               >
             </th>
             <th>
-              <input 
-                type="text" 
-                is="panlex-language-picker" 
+              <input
+                type="text"
+                is="panlex-language-picker"
                 value="{{ al_lang.name_expr_txt }}"
                 data-uid="{{ al_lang.uid }}"
                 id="al-lang-picker"
