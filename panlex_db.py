@@ -148,7 +148,7 @@ def refresh_cache_langvar(uid):
         copy_uid_expr += '\t'.join([uid,str(idx),str(expr.id),escape_for_copy(expr.txt)]) + '\n'
         idx += 1
 
-        if expr.txt_degr[0] not in index_chars:
+        if expr.txt_degr and expr.txt_degr[0] not in index_chars:
             char = expr.txt_degr[0]
             index_chars[char] = True
             copy_uid_expr_char_index += '\t'.join([uid,str(char_idx),char,str(idx)]) + '\n'
