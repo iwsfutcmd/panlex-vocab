@@ -13,6 +13,7 @@ DEBUG = False
 
 LANGVAR_CACHE = {}
 PAGE_COUNT_CACHE = {}
+CHAR_INDEX_CACHE = {}
 PAGE_SIZE = 50
 
 LANGVAR_QUERY = """
@@ -119,31 +120,46 @@ def query(query_string, args, one=False):
     except psycopg2.ProgrammingError:
         return None
 
-def refresh_expr_cache():
+def refresh_cache():
     query('truncate uid_expr', ())
+    query('truncate uid_expr_char_index', ())
 
     uids = [x.uid for x in query('select uid(lang_code,var_code) from langvar order by 1', ())]
 
     for uid in uids:
-        refresh_expr_cache_langvar(uid)
+       refresh_cache_langvar(uid)
 
     conn.commit()
 
-def refresh_expr_cache_langvar(uid):
+def refresh_cache_langvar(uid):
     print("fetching exprs for " + uid)
     script = get_langvar(uid).script_expr_txt
     sortfunc = sort_by_script(script)
     exprs = sorted(query(EXPR_QUERY, (uid,)), key=lambda x: sortfunc(x.txt_degr))
 
-    copy = ''
+    copy_uid_expr = ''
+    copy_uid_expr_char_index = ''
+    index_chars = {}
 
     idx = 1
-    for expr in exprs:
-        copy += '\t'.join([uid,str(idx),str(expr.id),escape_for_copy(expr.txt)]) + '\n'
-        idx = idx + 1
+    char_idx = 1
 
-    f = StringIO(copy)
+    for expr in exprs:
+        copy_uid_expr += '\t'.join([uid,str(idx),str(expr.id),escape_for_copy(expr.txt)]) + '\n'
+        idx += 1
+
+        if expr.txt_degr[0] not in index_chars:
+            char = expr.txt_degr[0]
+            index_chars[char] = True
+            copy_uid_expr_char_index += '\t'.join([uid,str(char_idx),char,str(idx)]) + '\n'
+            char_idx += 1
+
+    f = StringIO(copy_uid_expr)
     cur.copy_from(f, 'uid_expr', columns=('uid','idx','id','txt'))
+    f.close()
+
+    f = StringIO(copy_uid_expr_char_index)
+    cur.copy_from(f, 'uid_expr_char_index', columns=('uid','idx','char','uid_expr_idx'))
     f.close()
 
 def sort_by_script(script):
@@ -182,8 +198,19 @@ def get_page_count(uid):
         return PAGE_COUNT_CACHE[uid]
     except KeyError:
         expr_count = query('select count(*) from uid_expr where uid = %s', (uid,), True).count
-        PAGE_COUNT_CACHE[uid] = math.ceil(expr_count / PAGE_SIZE)
+        PAGE_COUNT_CACHE[uid] = get_page_number(expr_count)
         return get_page_count(uid)
+
+def get_char_index(uid):
+    try:
+        return CHAR_INDEX_CACHE[uid]
+    except KeyError:
+        entries = query('select char, uid_expr_idx as idx from uid_expr_char_index where uid = %s order by idx', (uid,))
+        CHAR_INDEX_CACHE[uid] = [(x.char,get_page_number(x.idx)) for x in entries]
+        return get_char_index(uid)
+
+def get_page_number(idx):
+    return math.ceil(idx / PAGE_SIZE)
 
 def get_translated_page(de_uid, al_uid, pageno):
     exprs = get_expr_page(de_uid, pageno)

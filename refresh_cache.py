@@ -1,3 +1,3 @@
 import panlex_db
 
-panlex_db.refresh_expr_cache()
+panlex_db.refresh_cache()
