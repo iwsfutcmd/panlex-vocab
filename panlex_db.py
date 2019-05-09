@@ -148,7 +148,7 @@ def refresh_cache_langvar(uid):
         copy_uid_expr += '\t'.join([uid,str(idx),str(expr.id),escape_for_copy(expr.txt)]) + '\n'
         idx += 1
 
-        if expr.txt_degr and expr.txt_degr[0] not in index_chars:
+        if expr.txt_degr and expr.txt_degr[0] not in index_chars and match_script(expr.txt_degr[0], script):
             char = expr.txt_degr[0]
             index_chars[char] = True
             copy_uid_expr_char_index += '\t'.join([uid,str(char_idx),char,str(idx)]) + '\n'
@@ -177,6 +177,17 @@ def sort_by_script(script):
             return (not matchscript, string)
 
     return sortfunc
+
+def match_script(char, script):
+    try:
+        matchre = SCRIPT_RE[script]
+    except KeyError:
+        matchre = r"\p{" + script + r"}"
+
+    if matchre is None:
+        return True
+    else:
+        return bool(re.match(matchre, char))
 
 def escape_for_copy(txt):
     return re.sub(r'\\', r'\\\\', txt)
