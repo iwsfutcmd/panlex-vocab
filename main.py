@@ -22,19 +22,19 @@ async def main(request, de_uid, al_uid=""):
     except KeyError:
         page = 1
 
-    de_lang = panlex_db.get_langvar(de_uid)
+    de_lang = await panlex_db.get_langvar(de_uid)
     if de_lang is None:
         de_lang = ""
 
     if al_uid == "":
         al_lang = ""
     else:
-        al_lang = panlex_db.get_langvar(al_uid)
+        al_lang = await panlex_db.get_langvar(al_uid)
         if al_lang is None:
             al_lang = ""
 
     try:
-        trn_list = panlex_db.get_translated_page(de_uid, al_uid, page)
+        trn_list = await panlex_db.get_translated_page(de_uid, al_uid, page)
     except (IndexError, AttributeError):
         trn_list = []
     return response.html(template.render(
@@ -42,12 +42,13 @@ async def main(request, de_uid, al_uid=""):
         al_lang=al_lang,
         trn_list=trn_list,
         page=page,
-        last_page=panlex_db.get_page_count(de_uid),
-        char_index=panlex_db.get_char_index(de_uid),
+        last_page=await panlex_db.get_page_count(de_uid),
+        char_index=await panlex_db.get_char_index(de_uid),
         page_range=PAGE_RANGE,
     ))
 
 app.add_route(main, r"/<de_uid:[a-z]{3}-\d{3}>")
 
 if __name__ == "__main__":
+    app.add_task(panlex_db.connect())
     app.run(host="127.0.0.1", port=os.environ["PORT"])
