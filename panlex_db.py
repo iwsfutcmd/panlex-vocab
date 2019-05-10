@@ -99,7 +99,7 @@ tx_conn = None
 
 async def connect():
     global pool
-    pool = await asyncpg.create_pool(database='plx', min_size=1, max_size=4)
+    pool = await asyncpg.create_pool(database="plx", min_size=1, max_size=4)
 
 async def tx_begin():
     global tx_conn
@@ -159,7 +159,7 @@ async def refresh_cache():
         uids = [x['uid'] for x in await query('select uid(lang_code,var_code) from langvar order by 1')]
 
         for uid in uids:
-         await refresh_cache_langvar(uid)
+            await refresh_cache_langvar(uid)
 
     tx_release()
 
