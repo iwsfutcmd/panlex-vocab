@@ -101,6 +101,15 @@ async def connect():
     global pool
     pool = await asyncpg.create_pool(database='plx', min_size=1, max_size=4)
 
+async def tx_begin():
+    global tx_conn
+    tx_conn = await pool.acquire()
+
+def tx_release():
+    global tx_conn
+    asyncio.ensure_future(pool.release(tx_conn))
+    tx_conn = None
+
 async def query(sql, args=(), fetch="all"):
     if tx_conn:
         conn = tx_conn
@@ -140,10 +149,8 @@ async def copy_records_to_table(*args, **kwargs):
     if will_release:
         asyncio.ensure_future(pool.release(conn))
 
-
 async def refresh_cache():
-    global tx_conn
-    tx_conn = await pool.acquire()
+    await tx_begin()
 
     async with tx_conn.transaction():
         await query('truncate uid_expr', fetch="none")
@@ -152,10 +159,9 @@ async def refresh_cache():
         uids = [x['uid'] for x in await query('select uid(lang_code,var_code) from langvar order by 1')]
 
         for uid in uids:
-          await refresh_cache_langvar(uid)
+         await refresh_cache_langvar(uid)
 
-    asyncio.ensure_future(pool.release(tx_conn))
-    tx_conn = None
+    tx_release()
 
 async def refresh_cache_langvar(uid):
     print("fetching exprs for " + uid)
