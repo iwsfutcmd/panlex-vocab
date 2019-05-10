@@ -5,8 +5,8 @@
   <head>
     <meta charset="utf-8">
 
-    <title>PanLex {{ de_lang.name_expr_txt }} Vocabulary</title>
-    <meta name="description" content="Comprehensive PanLex glossary for {{ de_lang.name_expr_txt }}">
+    <title>PanLex {{ de_lang['name_expr_txt'] }} Vocabulary</title>
+    <meta name="description" content="Comprehensive PanLex glossary for {{ de_lang['name_expr_txt'] }}">
     <meta name="author" content="Ben Yang, The PanLex Team">
     <script type="module" src="/vocab/static/panlex-language-picker/index.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.css">
@@ -20,7 +20,7 @@
       </figure>
       <div class="title-container">
         <h1 class="title">PanLex</h1>
-        <h2 class="subtitle">{{ de_lang.name_expr_txt }} Vocabulary</h2>
+        <h2 class="subtitle">{{ de_lang['name_expr_txt'] }} Vocabulary</h2>
       </div>
     </header>
     <main>
@@ -77,8 +77,8 @@
               <input
                 type="text"
                 is="panlex-language-picker"
-                value="{{ de_lang.name_expr_txt }}"
-                data-uid="{{ de_lang.uid }}"
+                value="{{ de_lang['name_expr_txt'] }}"
+                data-uid="{{ de_lang['uid'] }}"
                 id="de-lang-picker"
               >
             </th>
@@ -86,8 +86,8 @@
               <input
                 type="text"
                 is="panlex-language-picker"
-                value="{{ al_lang.name_expr_txt }}"
-                data-uid="{{ al_lang.uid }}"
+                value="{{ al_lang['name_expr_txt'] }}"
+                data-uid="{{ al_lang['uid'] }}"
                 id="al-lang-picker"
               >
             </th>
@@ -102,16 +102,16 @@
               {% if trn[1]|length > 1 %}
               <details>
                 <summary>
-                  {{trn[1][0].txt}}
+                  {{trn[1][0]['txt']}}
                 </summary>
                 <ol>
                   {% for ex in trn[1][1:] %}
-                  <li>{{ex.txt}}</li>
+                  <li>{{ex['txt']}}</li>
                   {% endfor %}
                 </ol>
               </details>
               {% else %}
-              {{trn[1][0].txt}}
+              {{trn[1][0]['txt']}}
               {% endif %}
             {% endif %}
             {#  #}
