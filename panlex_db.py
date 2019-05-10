@@ -123,7 +123,7 @@ async def query(sql, args=(), fetch="all"):
 
     if fetch == "all":
         result = await conn.fetch(sql, *args)
-    elif fetch == "one":
+    elif fetch == "row":
         result = await conn.fetchrow(sql, *args)
     elif fetch == "val":
         result = await conn.fetchval(sql, *args)
@@ -236,7 +236,7 @@ async def get_langvar(uid):
         return LANGVAR_CACHE[uid]
     except KeyError:
         #print("fetching langvar data for " + uid)
-        LANGVAR_CACHE[uid] = await query(LANGVAR_QUERY, (uid,), fetch="one")
+        LANGVAR_CACHE[uid] = await query(LANGVAR_QUERY, (uid,), fetch="row")
         return await get_langvar(uid)
 
 async def get_expr_page(uid, pageno):
