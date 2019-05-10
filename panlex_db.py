@@ -138,29 +138,39 @@ def refresh_cache_langvar(uid):
     exprs = sorted(query(EXPR_QUERY, (uid,)), key=lambda x: sortfunc(x.txt_degr))
 
     copy_uid_expr = ''
-    copy_uid_expr_char_index = ''
-    index_chars = {}
-
     idx = 1
-    char_idx = 1
+    index_chars = []
+    index_char_count = {}
 
     for expr in exprs:
         copy_uid_expr += '\t'.join([uid,str(idx),str(expr.id),escape_for_copy(expr.txt)]) + '\n'
-        idx += 1
 
-        if expr.txt_degr and expr.txt_degr[0] not in index_chars and match_script(expr.txt_degr[0], script):
+        if expr.txt_degr:
             char = expr.txt_degr[0]
-            index_chars[char] = True
-            copy_uid_expr_char_index += '\t'.join([uid,str(char_idx),char,str(idx)]) + '\n'
-            char_idx += 1
+            if char in index_char_count:
+                index_char_count[char] += 1
+            elif match_script(char, script):
+                index_chars.append((char,idx))
+                index_char_count[char] = 1
+
+        idx += 1
 
     f = StringIO(copy_uid_expr)
     cur.copy_from(f, 'uid_expr', columns=('uid','idx','id','txt'))
     f.close()
 
-    f = StringIO(copy_uid_expr_char_index)
-    cur.copy_from(f, 'uid_expr_char_index', columns=('uid','idx','char','uid_expr_idx'))
-    f.close()
+    index_chars = list(filter(lambda x: index_char_count[x[0]] >= 3, index_chars))
+    if index_chars:
+        copy_uid_expr_char_index = ''
+        char_idx = 1
+
+        for i in index_chars:
+            copy_uid_expr_char_index += '\t'.join([uid,str(char_idx),i[0],str(i[1])]) + '\n'
+            char_idx += 1
+
+        f = StringIO(copy_uid_expr_char_index)
+        cur.copy_from(f, 'uid_expr_char_index', columns=('uid','idx','char','uid_expr_idx'))
+        f.close()
 
 def sort_by_script(script):
     try:
