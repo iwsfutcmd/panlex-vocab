@@ -151,9 +151,8 @@ async def refresh_cache():
 
         uids = [x['uid'] for x in await query('select uid(lang_code,var_code) from langvar order by 1')]
 
-        await refresh_cache_langvar('nav-000')
-        # for uid in uids:
-        #   await refresh_cache_langvar(uid)
+        for uid in uids:
+          await refresh_cache_langvar(uid)
 
     asyncio.ensure_future(pool.release(tx_conn))
     tx_conn = None
