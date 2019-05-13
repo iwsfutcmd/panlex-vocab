@@ -242,15 +242,15 @@ async def get_langvar(uid, conn=None):
         LANGVAR_CACHE[uid] = await query(LANGVAR_QUERY, (uid,), fetch="row", conn=conn)
         return await get_langvar(uid, conn=conn)
 
-async def get_all_langvars():
+async def get_all_langvars(conn=None):
     try: 
         LANGVAR_CACHE["*"]
         return [LANGVAR_CACHE[uid] for uid in LANGVAR_CACHE if uid != "*"]
     except KeyError:
         print("fetching all langvar data...")
-        r = await query(ALL_LANGVAR_QUERY, [])
+        r = await query(ALL_LANGVAR_QUERY, [], conn=conn)
         for langvar in r:
-            LANGVAR_CACHE[langvar.uid] = langvar
+            LANGVAR_CACHE[langvar["uid"]] = langvar
         LANGVAR_CACHE["*"] = True
         return await get_all_langvars()
 

@@ -85,7 +85,7 @@
         <tbody>
           {%- for langvar in langvar_list -%}
           <tr>
-            <td>{{langvar.name_expr_txt}}</td>
+            <td><a href={{langvar.uid}}>{{langvar.name_expr_txt}}</a></td>
             {# <td>
             {% if trn[1] %}
               {% if trn[1]|length > 1 %}
