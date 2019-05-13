@@ -29,6 +29,20 @@ where
   uid(langvar.lang_code, langvar.var_code) = $1
 """
 
+ALL_LANGVAR_QUERY = """
+select
+  langvar.id,
+  langvar.lang_code,
+  expr.txt as name_expr_txt,
+  uid(langvar.lang_code, langvar.var_code),
+  langvar.var_code,
+  script_expr.txt as script_expr_txt
+from
+  langvar
+  inner join expr on expr.id = langvar.name_expr
+  inner join expr as script_expr on script_expr.id = langvar.script_expr
+"""
+
 EXPR_QUERY = """
 select
   expr.id,
@@ -227,6 +241,18 @@ async def get_langvar(uid, conn=None):
         #print("fetching langvar data for " + uid)
         LANGVAR_CACHE[uid] = await query(LANGVAR_QUERY, (uid,), fetch="row", conn=conn)
         return await get_langvar(uid, conn=conn)
+
+async def get_all_langvars():
+    try: 
+        LANGVAR_CACHE["*"]
+        return [LANGVAR_CACHE[uid] for uid in LANGVAR_CACHE if uid != "*"]
+    except KeyError:
+        print("fetching all langvar data...")
+        r = await query(ALL_LANGVAR_QUERY, [])
+        for langvar in r:
+            LANGVAR_CACHE[langvar.uid] = langvar
+        LANGVAR_CACHE["*"] = True
+        return await get_all_langvars()
 
 async def get_expr_page(uid, pageno):
     last_expr = pageno * PAGE_SIZE

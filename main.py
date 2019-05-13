@@ -14,6 +14,17 @@ app = Sanic()
 app.static("/vocab/static", "./static")
 app.static("/favicon.ico", "./favicon.ico")
 
+@app.route("/")
+async def main(request):
+    template = Template(open("langvar.jinja2").read())
+    langvar_list = await panlex_db.get_all_langvars()
+    return response.html(template.render(
+        page=1,
+        last_page=1,
+        page_range=PAGE_RANGE,
+        langvar_list=langvar_list,
+    ))
+
 @app.route(r"/<de_uid:[a-z]{3}-\d{3}>/<al_uid:[a-z]{3}-\d{3}>")
 async def main(request, de_uid, al_uid=""):
     template = Template(open("vocab.jinja2").read())

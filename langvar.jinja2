@@ -1,0 +1,123 @@
+<!doctype html>
+
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+
+    <title>PanLex Languages</title>
+    <meta name="description" content="List of all languages in PanLex">
+    <meta name="author" content="Ben Yang, The PanLex Team">
+    {# <script type="module" src="/vocab/static/panlex-language-picker/index.js"></script> #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.css">
+    <link rel="stylesheet" href="/vocab/static/css/styles.css">
+  </head>
+
+  <body>
+    <header>
+      <figure class="image is-72x72">
+        <img src="/vocab/static/images/logo.png">
+      </figure>
+      <div class="title-container">
+        <h1 class="title">PanLex</h1>
+        <h2 class="subtitle">Languages</h2>
+      </div>
+    </header>
+    <main>
+      {% block pagination %}
+      <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+        <a class="pagination-previous"
+          {% if page <= 1 %} disabled {% endif %} 
+          href="?page={{page - 1}}">←</a>
+        <a class="pagination-next"
+          {% if page >= last_page %} disabled {% endif %} 
+          href="?page={{page + 1}}">→</a>
+        <ul class="pagination-list">
+          {% if page > (page_range + 1) %}
+          <li>
+            <a class="pagination-link" href="?page=1">1</a>
+          </li>
+          <li><span class="pagination-ellipsis">&hellip;</span></li>
+          {% endif %}
+          {%- for pageno in range(
+            [page - page_range, 1]|max, 
+            [page + page_range, last_page]|min + 1
+          ) -%}
+          <li>
+            <a class="pagination-link {% if pageno == page %} is-current {% endif %}" href="?page={{ pageno }}">
+              {{ pageno }}
+            </a>
+          </li>
+          {%- endfor -%}
+          {% if page < (last_page - page_range) %}
+          <li><span class="pagination-ellipsis">&hellip;</span></li>
+          <li>
+            <a class="pagination-link" href="?page={{last_page}}">{{ last_page }}</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endblock %}
+
+      <table class="table is-fullwidth is-striped">
+        {# <thead>
+          <tr>
+            <th>
+              <input 
+                type="text" 
+                is="panlex-language-picker" 
+                value="{{ de_lang.name_expr_txt }}"
+                data-uid="{{ de_lang.uid }}"
+                id="de-lang-picker"
+              >
+            </th>
+            <th>
+              <input 
+                type="text" 
+                is="panlex-language-picker" 
+                value="{{ al_lang.name_expr_txt }}"
+                data-uid="{{ al_lang.uid }}"
+                id="al-lang-picker"
+              >
+            </th>
+          </tr>
+        </thead> #}
+        <tbody>
+          {%- for langvar in langvar_list -%}
+          <tr>
+            <td>{{langvar.name_expr_txt}}</td>
+            {# <td>
+            {% if trn[1] %}
+              {% if trn[1]|length > 1 %}
+              <details>
+                <summary>
+                  {{trn[1][0].txt}}
+                </summary>
+                <ol>
+                  {% for ex in trn[1][1:] %}
+                  <li>{{ex.txt}}</li>
+                  {% endfor %}
+                </ol>
+              </details>
+              {% else %}
+              {{trn[1][0].txt}}
+              {% endif %}
+            {% endif %}
+            </td> #}
+          </tr>
+          {%- endfor -%}
+        </tbody>
+        {# <tfoot>
+          <tr>
+            <th>{{ de_lang_name }}</th>
+            <th>{{ al_lang_name }}</th>
+          </tr>
+        </tfoot> #}
+
+      </table>
+      {{ self.pagination() }}
+    </main>
+  </body>
+  {# <script src="/vocab/static/js/index.js"></script> #}
+
+</html>
