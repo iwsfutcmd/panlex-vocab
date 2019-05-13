@@ -95,24 +95,12 @@ SCRIPT_RE = {
     "Zsym": None,
 }
 
-tx_conn = None
-
 async def connect():
     global pool
     pool = await asyncpg.create_pool(database="plx", min_size=1, max_size=4)
 
-async def tx_begin():
-    global tx_conn
-    tx_conn = await pool.acquire()
-
-def tx_release():
-    global tx_conn
-    asyncio.ensure_future(pool.release(tx_conn))
-    tx_conn = None
-
-async def query(sql, args=(), fetch="all"):
-    if tx_conn:
-        conn = tx_conn
+async def query(sql, args=(), fetch="all", conn=None):
+    if conn:
         will_release = False
     else:
         conn = await pool.acquire()
@@ -137,8 +125,9 @@ async def query(sql, args=(), fetch="all"):
     return result
 
 async def copy_records_to_table(*args, **kwargs):
-    if tx_conn:
-        conn = tx_conn
+    if 'conn' in kwargs:
+        conn = kwargs['conn']
+        del kwargs['conn']
         will_release = False
     else:
         conn = await pool.acquire()
@@ -150,24 +139,24 @@ async def copy_records_to_table(*args, **kwargs):
         asyncio.ensure_future(pool.release(conn))
 
 async def refresh_cache():
-    await tx_begin()
+    conn = await pool.acquire()
 
-    async with tx_conn.transaction():
-        await query('truncate uid_expr', fetch="none")
-        await query('truncate uid_expr_char_index', fetch="none")
+    async with conn.transaction():
+        await query('truncate uid_expr', fetch="none", conn=conn)
+        await query('truncate uid_expr_char_index', fetch="none", conn=conn)
 
-        uids = [x['uid'] for x in await query('select uid(lang_code,var_code) from langvar order by 1')]
+        uids = [x['uid'] for x in await query('select uid(lang_code,var_code) from langvar order by 1', conn=conn)]
 
         for uid in uids:
-            await refresh_cache_langvar(uid)
+            await refresh_cache_langvar(uid, conn)
 
-    tx_release()
+    asyncio.ensure_future(pool.release(conn))
 
-async def refresh_cache_langvar(uid):
+async def refresh_cache_langvar(uid, conn):
     print("fetching exprs for " + uid)
-    script = (await get_langvar(uid))['script_expr_txt']
+    script = (await get_langvar(uid, conn=conn))['script_expr_txt']
     sortfunc = sort_by_script(script)
-    exprs = await query(EXPR_QUERY, (uid,))
+    exprs = await query(EXPR_QUERY, (uid,), conn=conn)
     exprs = sorted(exprs, key=lambda x: sortfunc(x['txt_degr']))
 
     copy_uid_expr = []
@@ -188,7 +177,7 @@ async def refresh_cache_langvar(uid):
 
         idx += 1
 
-    await copy_records_to_table('uid_expr', records=copy_uid_expr, columns=['uid','idx','id','txt'])
+    await copy_records_to_table('uid_expr', records=copy_uid_expr, columns=['uid','idx','id','txt'], conn=conn)
 
     index_chars = list(filter(lambda x: index_char_count[x[0]] >= 3, index_chars))
     if index_chars:
@@ -199,7 +188,7 @@ async def refresh_cache_langvar(uid):
             copy_uid_expr_char_index.append((uid,char_idx,i[0],i[1]))
             char_idx += 1
 
-        await copy_records_to_table('uid_expr_char_index', records=copy_uid_expr_char_index, columns=['uid','idx','char','uid_expr_idx'])
+        await copy_records_to_table('uid_expr_char_index', records=copy_uid_expr_char_index, columns=['uid','idx','char','uid_expr_idx'], conn=conn)
 
 def sort_by_script(script):
     try:
@@ -231,13 +220,13 @@ def match_script(char, script):
 def escape_for_copy(txt):
     return re.sub(r'\\', r'\\\\', txt)
 
-async def get_langvar(uid):
+async def get_langvar(uid, conn=None):
     try:
         return LANGVAR_CACHE[uid]
     except KeyError:
         #print("fetching langvar data for " + uid)
-        LANGVAR_CACHE[uid] = await query(LANGVAR_QUERY, (uid,), fetch="row")
-        return await get_langvar(uid)
+        LANGVAR_CACHE[uid] = await query(LANGVAR_QUERY, (uid,), fetch="row", conn=conn)
+        return await get_langvar(uid, conn=conn)
 
 async def get_expr_page(uid, pageno):
     last_expr = pageno * PAGE_SIZE
