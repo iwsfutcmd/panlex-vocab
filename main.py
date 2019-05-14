@@ -1,5 +1,6 @@
 from collections import namedtuple
 import os
+import sys
 
 from sanic import Sanic, response
 from jinja2 import Template
@@ -10,10 +11,11 @@ import panlex_db
 Trn = namedtuple("Trn", ["de_ex", "al_ex"])
 PAGE_RANGE = 2
 
+template_dir = sys.path[0] + "/templates"
 template = {}
-for file in os.listdir("templates"):
+for file in os.listdir(template_dir):
     name = re.sub(r"\.jinja2$", r"", file)
-    template[name] = Template(open("templates/" + file).read())
+    template[name] = Template(open(template_dir + "/" + file).read())
 
 app = Sanic()
 
