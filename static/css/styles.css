@@ -11,7 +11,9 @@ header {
 .title-container {
     padding-inline-start: 8px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
+    inline-size: 100%;
 }
 
 .pagination-link.is-current {

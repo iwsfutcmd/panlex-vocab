@@ -10,6 +10,7 @@ import asyncpg
 DEBUG = False
 
 LANGVAR_CACHE = {}
+SOURCE_CACHE = {}
 PAGE_COUNT_CACHE = {}
 CHAR_INDEX_CACHE = {}
 PAGE_SIZE = 50
@@ -20,7 +21,9 @@ select
   expr.txt as name_expr_txt,
   uid(langvar.lang_code, langvar.var_code),
   langvar.var_code,
-  script_expr.txt as script_expr_txt
+  script_expr.txt as script_expr_txt,
+  (select count(*) from expr where expr.langvar = langvar.id) as expr_count,
+  (select count(*) from source where exists (select 1 from denotationx dx where dx.langvar = langvar.id and dx.source = source.id)) as analyzed_source_count
 from
   langvar
   inner join expr on expr.id = langvar.name_expr
@@ -92,6 +95,22 @@ group by
   denotationsrc.expr
 order by
   trans_quality desc
+"""
+
+# WIP
+SOURCE_QUERY = """
+select
+  source.id,
+  source.label,
+  source_editorial.denotation_count as denotation_count_estimate
+from
+  source
+  inner join source_editorial on source_editorial.source = source.id
+where
+  source_editorial.submit_file = true
+  and exists (select 1 from source_langvar where source_langvar.source = source.id and source_langvar.langvar = uid_langvar('nav-000'))
+order by
+  source.id asc
 """
 
 SCRIPT_RE = {
@@ -290,3 +309,10 @@ async def get_translated_page(de_uid, al_uid, pageno):
         trans_dict[trans['trans_expr']].append(trans)
 
     return [(expr, trans_dict[expr['id']]) for expr in exprs]
+
+# WIP
+async def get_sources(uid, conn=None):
+    try:
+        return SOURCE_CACHE[uid]
+    except KeyError:
+        pass

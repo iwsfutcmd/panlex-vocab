@@ -56,6 +56,7 @@ async def main(request, de_uid, al_uid=""):
         last_page=await panlex_db.get_page_count(de_uid),
         char_index=await panlex_db.get_char_index(de_uid),
         page_range=PAGE_RANGE,
+        expr_count=de_lang["expr_count"]
     ))
 
 app.add_route(main, r"/<de_uid:[a-z]{3}-\d{3}>")
