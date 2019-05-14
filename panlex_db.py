@@ -10,6 +10,7 @@ import asyncpg
 DEBUG = False
 
 LANGVAR_CACHE = {}
+ALL_LANGVAR_CACHE = {}
 SOURCE_CACHE = {}
 PAGE_COUNT_CACHE = {}
 CHAR_INDEX_CACHE = {}
@@ -250,14 +251,14 @@ async def get_langvar(uid, conn=None):
 
 async def get_all_langvars(conn=None):
     try:
-        LANGVAR_CACHE["*"]
-        return [LANGVAR_CACHE[uid] for uid in LANGVAR_CACHE if uid != "*"]
+        ALL_LANGVAR_CACHE["*"]
+        return [ALL_LANGVAR_CACHE[uid] for uid in ALL_LANGVAR_CACHE if uid != "*"]
     except KeyError:
         print("fetching all langvar data...")
-        r = await query(ALL_LANGVAR_QUERY, [], conn=conn)
+        r = await query(ALL_LANGVAR_QUERY, conn=conn)
         for langvar in r:
-            LANGVAR_CACHE[langvar["uid"]] = langvar
-        LANGVAR_CACHE["*"] = True
+            ALL_LANGVAR_CACHE[langvar["uid"]] = langvar
+        ALL_LANGVAR_CACHE["*"] = True
         return await get_all_langvars()
 
 async def get_expr_page(uid, pageno):
