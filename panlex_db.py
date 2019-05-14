@@ -12,7 +12,6 @@ DEBUG = False
 LANGVAR_CACHE = {}
 ALL_LANGVAR_CACHE = {}
 SOURCE_CACHE = {}
-PAGE_COUNT_CACHE = {}
 CHAR_INDEX_CACHE = {}
 PAGE_SIZE = 50
 
@@ -266,12 +265,8 @@ async def get_expr_page(uid, pageno):
     return await query(EXPR_PAGE_QUERY, (uid, last_expr - PAGE_SIZE, last_expr))
 
 async def get_page_count(uid):
-    try:
-        return PAGE_COUNT_CACHE[uid]
-    except KeyError:
-        expr_count = await query('select count(*) from uid_expr where uid = $1', (uid,), fetch="val")
-        PAGE_COUNT_CACHE[uid] = get_page_number(expr_count)
-        return await get_page_count(uid)
+    langvar = await get_langvar(uid)
+    return get_page_number(langvar["expr_count"])
 
 def get_page_number(idx):
     return math.ceil(idx / PAGE_SIZE)
