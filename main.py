@@ -37,6 +37,13 @@ async def main(request, de_uid, al_uid=""):
     if de_lang is None:
         de_lang = ""
 
+    last_page=await panlex_db.get_page_count(de_uid)
+    if page < 1:
+        page = 1
+    elif page > last_page:
+        page = last_page
+    
+
     if al_uid == "":
         al_lang = ""
     else:
@@ -53,7 +60,7 @@ async def main(request, de_uid, al_uid=""):
         al_lang=al_lang,
         trn_list=trn_list,
         page=page,
-        last_page=await panlex_db.get_page_count(de_uid),
+        last_page=last_page,
         char_index=await panlex_db.get_char_index(de_uid),
         page_range=PAGE_RANGE,
         expr_count=de_lang["expr_count"]
