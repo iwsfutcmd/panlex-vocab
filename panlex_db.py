@@ -93,6 +93,47 @@ order by
   source.id asc
 """
 
+ANALYZED_SOURCE_QUERY = """
+select
+  count(*)
+from
+  source
+where exists (
+  select 1
+  from denotationx dx
+  where dx.langvar = $1
+  and dx.source = source.id
+)
+"""
+
+UNANALYZED_SOURCE_QUERY = """
+select
+  count(*) as source_count,
+  sum(denotation_count) as denotation_count
+from (
+  select
+    ceil(se.denotation_count::numeric / count(*)) as denotation_count
+  from
+    source
+    join source_editorial se on se.source = source.id
+    join source_langvar sl on sl.source = source.id
+  where
+    exists (
+      select 1
+      from source_langvar sl2
+      where sl2.source = sl.source
+      and sl2.langvar = $1
+    )
+    and not exists (
+      select 1
+      from denotationx dx
+      where dx.langvar = $1
+      and dx.source = source.id
+    )
+  group by se.denotation_count
+) s
+"""
+
 SEARCH_QUERY = """
 select
   vocab_expr.idx
@@ -191,8 +232,10 @@ async def refresh_cache_langvar(uid, conn):
 
     await copy_records_to_table("vocab_expr", records=copy_vocab_expr, columns=["uid","idx","id","txt"], conn=conn)
 
-    asc = await query("select count(*) from source where exists (select 1 from denotationx dx where dx.langvar = $1 and dx.source = source.id)", args=(langvar["id"],), fetch="val", conn=conn)
-    await query("insert into vocab_langvar (id, expr_count, analyzed_source_count) values ($1, $2, $3)", args=(langvar["id"],len(exprs),asc), fetch="none", conn=conn)
+    analyzed_count = await query(ANALYZED_SOURCE_QUERY, args=(langvar["id"],), fetch="val", conn=conn)
+    unanalyzed = await query(UNANALYZED_SOURCE_QUERY, args=(langvar["id"],), fetch="row", conn=conn)
+
+    await query("insert into vocab_langvar (id, expr_count, analyzed_source_count, unanalyzed_source_count, unanalyzed_denotation_estimate) values ($1, $2, $3, $4, $5)", args=(langvar["id"], len(exprs),analyzed_count, unanalyzed["source_count"], unanalyzed["denotation_count"]), fetch="none", conn=conn)
 
 def sort_by_script(script):
     try:
