@@ -19,10 +19,9 @@ select
   script_expr.txt as script_expr_txt,
   vocab_langvar.expr_count,
   vocab_langvar.analyzed_source_count
-  (select count(*) from source where exists (select 1 from denotationx dx where dx.langvar = langvar.id and dx.source = source.id)) as analyzed_source_count
 from
   langvar
-  join vocab_langvar on vocab_langvar.id = langvar.id
+  left join vocab_langvar on vocab_langvar.id = langvar.id
   join expr on expr.id = langvar.name_expr
   join expr as script_expr on script_expr.id = langvar.script_expr
 """
@@ -167,6 +166,7 @@ async def refresh_cache():
 
     async with conn.transaction():
         await query('truncate vocab_expr', fetch="none", conn=conn)
+        await query('truncate vocab_langvar', fetch="none", conn=conn)
 
         uids = [x["uid"] for x in await query('select uid(lang_code,var_code) from langvar order by 1', conn=conn)]
 
@@ -191,8 +191,8 @@ async def refresh_cache_langvar(uid, conn):
 
     await copy_records_to_table("vocab_expr", records=copy_vocab_expr, columns=["uid","idx","id","txt"], conn=conn)
 
-    asc = await query("select count(*) from source where exists (select 1 from denotationx dx where dx.langvar = langvar.id and dx.source = source.id)", fetch="val", conn=conn)
-    await query("insert into vocab_langvar (id, uid, expr_count, analyzed_source_count) values ($1, $2, $3, $4)", args=(langvar["id"],langvar["uid"],len(exprs),asc), fetch-"none", conn=conn)
+    asc = await query("select count(*) from source where exists (select 1 from denotationx dx where dx.langvar = $1 and dx.source = source.id)", args=(langvar["id"],), fetch="val", conn=conn)
+    await query("insert into vocab_langvar (id, expr_count, analyzed_source_count) values ($1, $2, $3)", args=(langvar["id"],len(exprs),asc), fetch="none", conn=conn)
 
 def sort_by_script(script):
     try:
