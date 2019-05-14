@@ -222,7 +222,7 @@ def sort_by_script(script):
             return (txt_degr, txt)
     else:
         def sortfunc(txt_degr, txt):
-            matchscript = bool(re.match(matchre, string))
+            matchscript = bool(re.match(matchre, txt_degr))
             return (not matchscript, txt_degr, txt)
 
     return sortfunc
