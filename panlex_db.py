@@ -278,7 +278,7 @@ async def get_matching_page(uid, txt, conn=None):
 
     txt_degr_like = like_escape(txt_degr) + "%"
 
-    idx = await query(SEARCH_QUERY, (uid, txt_degr_like,), fetch="val", conn=conn)
+    idx = await query(SEARCH_QUERY, (uid, txt_degr_like), fetch="val", conn=conn)
 
     if idx:
         return get_page_number(idx)
