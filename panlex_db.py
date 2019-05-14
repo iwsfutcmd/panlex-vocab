@@ -18,7 +18,10 @@ select
   uid(langvar.lang_code, langvar.var_code),
   script_expr.txt as script_expr_txt,
   vocab_langvar.expr_count,
-  vocab_langvar.analyzed_source_count
+  vocab_langvar.analyzed_source_count,
+  vocab_langvar.unanalyzed_source_count,
+  vocab_langvar.unanalyzed_denotation_estimate
+
 from
   langvar
   left join vocab_langvar on vocab_langvar.id = langvar.id
@@ -75,22 +78,6 @@ group by
   denotationsrc.expr
 order by
   trans_quality desc
-"""
-
-# WIP
-SOURCE_QUERY = """
-select
-  source.id,
-  source.label,
-  source_editorial.denotation_count as denotation_count_estimate
-from
-  source
-  join source_editorial on source_editorial.source = source.id
-where
-  source_editorial.submit_file is true
-  and exists (select 1 from source_langvar where source_langvar.source = source.id and source_langvar.langvar = uid_langvar('nav-000'))
-order by
-  source.id asc
 """
 
 ANALYZED_SOURCE_QUERY = """
