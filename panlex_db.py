@@ -8,37 +8,21 @@ import asyncpg
 DEBUG = False
 
 LANGVAR_CACHE = {}
-ALL_LANGVAR_CACHE = {}
 SOURCE_CACHE = {}
 PAGE_SIZE = 50
 
 LANGVAR_QUERY = """
 select
-  langvar.lang_code,
+  langvar.id,
   expr.txt as name_expr_txt,
   uid(langvar.lang_code, langvar.var_code),
-  langvar.var_code,
   script_expr.txt as script_expr_txt,
-  (select count(*) from expr where expr.langvar = langvar.id) as expr_count,
+  vocab_langvar.expr_count,
+  vocab_langvar.analyzed_source_count
   (select count(*) from source where exists (select 1 from denotationx dx where dx.langvar = langvar.id and dx.source = source.id)) as analyzed_source_count
 from
   langvar
-  join expr on expr.id = langvar.name_expr
-  join expr as script_expr on script_expr.id = langvar.script_expr
-where
-  uid(langvar.lang_code, langvar.var_code) = $1
-"""
-
-ALL_LANGVAR_QUERY = """
-select
-  langvar.id,
-  langvar.lang_code,
-  expr.txt as name_expr_txt,
-  uid(langvar.lang_code, langvar.var_code),
-  langvar.var_code,
-  script_expr.txt as script_expr_txt
-from
-  langvar
+  join vocab_langvar on vocab_langvar.id = langvar.id
   join expr on expr.id = langvar.name_expr
   join expr as script_expr on script_expr.id = langvar.script_expr
 """
@@ -56,18 +40,18 @@ where
 
 EXPR_PAGE_QUERY = """
 select
-  uid_expr.id,
-  uid_expr.txt
+  vocab_expr.id,
+  vocab_expr.txt
 from
-  uid_expr
+  vocab_expr
 where
-  uid_expr.uid = $1
+  vocab_expr.uid = $1
   and
-  uid_expr.idx > $2
+  vocab_expr.idx > $2
   and
-  uid_expr.idx <= $3
+  vocab_expr.idx <= $3
 order by
-  uid_expr.idx
+  vocab_expr.idx
 """
 
 TRANSLATE_QUERY = """
@@ -112,14 +96,14 @@ order by
 
 SEARCH_QUERY = """
 select
-  uid_expr.idx
+  vocab_expr.idx
 from
-  uid_expr
-  join expr on expr.id = uid_expr.id
+  vocab_expr
+  join expr on expr.id = vocab_expr.id
 where
-  uid_expr.uid = $1
+  vocab_expr.uid = $1
   and expr.txt_degr like $2
-order by uid_expr.idx
+order by vocab_expr.idx
 limit 1
 """
 
@@ -182,7 +166,7 @@ async def refresh_cache():
     conn = await pool.acquire()
 
     async with conn.transaction():
-        await query('truncate uid_expr', fetch="none", conn=conn)
+        await query('truncate vocab_expr', fetch="none", conn=conn)
 
         uids = [x["uid"] for x in await query('select uid(lang_code,var_code) from langvar order by 1', conn=conn)]
 
@@ -198,14 +182,17 @@ async def refresh_cache_langvar(uid, conn):
     exprs = await query(EXPR_QUERY, (uid,), conn=conn)
     exprs = sorted(exprs, key=lambda x: sortfunc(x["txt_degr"],x["txt"]))
 
-    copy_uid_expr = []
+    copy_vocab_expr = []
     idx = 1
 
     for expr in exprs:
-        copy_uid_expr.append((uid,idx,expr["id"],expr["txt"]))
+        copy_vocab_expr.append((uid,idx,expr["id"],expr["txt"]))
         idx += 1
 
-    await copy_records_to_table("uid_expr", records=copy_uid_expr, columns=["uid","idx","id","txt"], conn=conn)
+    await copy_records_to_table("vocab_expr", records=copy_vocab_expr, columns=["uid","idx","id","txt"], conn=conn)
+
+    asc = await query("select count(*) from source where exists (select 1 from denotationx dx where dx.langvar = langvar.id and dx.source = source.id)", fetch="val", conn=conn)
+    await query("insert into vocab_langvar (id, uid, expr_count, analyzed_source_count) values ($1, $2, $3, $4)", args=(langvar["id"],langvar["uid"],len(exprs),asc), fetch-"none", conn=conn)
 
 def sort_by_script(script):
     try:
@@ -238,19 +225,18 @@ async def get_langvar(uid, conn=None):
     try:
         return LANGVAR_CACHE[uid]
     except KeyError:
-        #print("fetching langvar data for " + uid)
-        LANGVAR_CACHE[uid] = await query(LANGVAR_QUERY, (uid,), fetch="row", conn=conn)
+        await get_all_langvars(conn=conn)
         return await get_langvar(uid, conn=conn)
 
 async def get_all_langvars(conn=None):
     try:
-        ALL_LANGVAR_CACHE["*"]
-        return [ALL_LANGVAR_CACHE[uid] for uid in ALL_LANGVAR_CACHE if uid != "*"]
+        LANGVAR_CACHE["*"]
+        return [LANGVAR_CACHE[uid] for uid in LANGVAR_CACHE if uid != "*"]
     except KeyError:
         print("fetching all langvar data...")
-        for langvar in await query(ALL_LANGVAR_QUERY, conn=conn):
-            ALL_LANGVAR_CACHE[langvar["uid"]] = langvar
-        ALL_LANGVAR_CACHE["*"] = True
+        for langvar in await query(LANGVAR_QUERY, conn=conn):
+            LANGVAR_CACHE[langvar["uid"]] = langvar
+        LANGVAR_CACHE["*"] = True
         return await get_all_langvars()
 
 async def get_expr_page(uid, pageno):
