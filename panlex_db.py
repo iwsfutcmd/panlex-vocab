@@ -172,9 +172,9 @@ async def query(sql, args=(), fetch="all", conn=None):
     return result
 
 async def copy_records_to_table(*args, **kwargs):
-    if 'conn' in kwargs:
-        conn = kwargs['conn']
-        del kwargs['conn']
+    if "conn" in kwargs:
+        conn = kwargs["conn"]
+        del kwargs["conn"]
         will_release = False
     else:
         conn = await pool.acquire()
@@ -191,7 +191,7 @@ async def refresh_cache():
     async with conn.transaction():
         await query('truncate uid_expr', fetch="none", conn=conn)
 
-        uids = [x['uid'] for x in await query('select uid(lang_code,var_code) from langvar order by 1', conn=conn)]
+        uids = [x["uid"] for x in await query('select uid(lang_code,var_code) from langvar order by 1', conn=conn)]
 
         for uid in uids:
             await refresh_cache_langvar(uid, conn)
@@ -200,19 +200,19 @@ async def refresh_cache():
 
 async def refresh_cache_langvar(uid, conn):
     print("fetching exprs for " + uid)
-    script = (await get_langvar(uid, conn=conn))['script_expr_txt']
+    script = (await get_langvar(uid, conn=conn))["script_expr_txt"]
     sortfunc = sort_by_script(script)
     exprs = await query(EXPR_QUERY, (uid,), conn=conn)
-    exprs = sorted(exprs, key=lambda x: sortfunc(x['txt_degr'],x['txt']))
+    exprs = sorted(exprs, key=lambda x: sortfunc(x["txt_degr"],x["txt"]))
 
     copy_uid_expr = []
     idx = 1
 
     for expr in exprs:
-        copy_uid_expr.append((uid,idx,expr['id'],expr['txt']))
+        copy_uid_expr.append((uid,idx,expr["id"],expr["txt"]))
         idx += 1
 
-    await copy_records_to_table('uid_expr', records=copy_uid_expr, columns=['uid','idx','id','txt'], conn=conn)
+    await copy_records_to_table("uid_expr", records=copy_uid_expr, columns=["uid","idx","id","txt"], conn=conn)
 
 def sort_by_script(script):
     try:
@@ -280,15 +280,15 @@ async def get_translated_page(de_uid, al_uid, pageno):
     exprs = await get_expr_page(de_uid, pageno)
 
     if al_uid != "":
-        trans_results = await query(TRANSLATE_QUERY, (al_uid, [expr['id'] for expr in exprs]))
+        trans_results = await query(TRANSLATE_QUERY, (al_uid, [expr["id"] for expr in exprs]))
     else:
         trans_results = []
 
-    trans_dict = {expr['id']: [] for expr in exprs}
+    trans_dict = {expr["id"]: [] for expr in exprs}
     for trans in trans_results:
-        trans_dict[trans['trans_expr']].append(trans)
+        trans_dict[trans["trans_expr"]].append(trans)
 
-    return [(expr, trans_dict[expr['id']]) for expr in exprs]
+    return [(expr, trans_dict[expr["id"]]) for expr in exprs]
 
 # WIP
 async def get_sources(uid, conn=None):
@@ -302,9 +302,9 @@ async def get_matching_page(uid, txt, conn=None):
     if not txt_degr:
         return None
 
-    txt_degr_like = like_escape(txt_degr) + '%'
+    txt_degr_like = like_escape(txt_degr) + "%"
 
-    idx = await query(SEARCH_QUERY, (uid, txt_degr_like), fetch="val", conn=conn)
+    idx = await query(SEARCH_QUERY, (uid, txt_degr_like,), fetch="val", conn=conn)
 
     if idx:
         return get_page_number(idx)
@@ -312,4 +312,4 @@ async def get_matching_page(uid, txt, conn=None):
         return None
 
 def like_escape(txt):
-    return re.sub(r'([\\%_])', r'\\$1', txt)
+    return re.sub(r"([\\%_])", r"\\$1", txt)

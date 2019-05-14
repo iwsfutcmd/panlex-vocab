@@ -43,7 +43,6 @@ async def main(request, de_uid, al_uid=""):
     elif page > last_page:
         page = last_page
 
-
     if al_uid == "":
         al_lang = ""
     else:
