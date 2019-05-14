@@ -9,6 +9,10 @@ import panlex_db
 Trn = namedtuple("Trn", ["de_ex", "al_ex"])
 PAGE_RANGE = 2
 
+template = {}
+for t in ["langvar", "vocab"]:
+    template[t] = Template(open(t + ".jinja2").read())
+
 app = Sanic()
 
 app.static("/vocab/static", "./static")
@@ -16,9 +20,8 @@ app.static("/favicon.ico", "./favicon.ico")
 
 @app.route("/")
 async def main(request):
-    template = Template(open("langvar.jinja2").read())
     langvar_list = await panlex_db.get_all_langvars()
-    return response.html(template.render(
+    return response.html(template["langvar"].render(
         page=1,
         last_page=1,
         page_range=PAGE_RANGE,
@@ -27,7 +30,6 @@ async def main(request):
 
 @app.route(r"/<de_uid:[a-z]{3}-\d{3}>/<al_uid:[a-z]{3}-\d{3}>")
 async def main(request, de_uid, al_uid=""):
-    template = Template(open("vocab.jinja2").read())
     try:
         page = int(request.args["page"][0])
     except KeyError:
@@ -37,7 +39,7 @@ async def main(request, de_uid, al_uid=""):
     if de_lang is None:
         de_lang = ""
 
-    last_page=await panlex_db.get_page_count(de_uid)
+    last_page = await panlex_db.get_page_count(de_uid)
     if page < 1:
         page = 1
     elif page > last_page:
@@ -54,14 +56,14 @@ async def main(request, de_uid, al_uid=""):
         trn_list = await panlex_db.get_translated_page(de_uid, al_uid, page)
     except (IndexError, AttributeError):
         trn_list = []
-    return response.html(template.render(
+    return response.html(template["vocab"].render(
         de_lang=de_lang,
         al_lang=al_lang,
         trn_list=trn_list,
         page=page,
         last_page=last_page,
         page_range=PAGE_RANGE,
-        expr_count=de_lang["expr_count"]
+        expr_count=de_lang["expr_count"],
     ))
 
 app.add_route(main, r"/<de_uid:[a-z]{3}-\d{3}>")
