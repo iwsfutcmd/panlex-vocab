@@ -26,8 +26,8 @@ select
   (select count(*) from source where exists (select 1 from denotationx dx where dx.langvar = langvar.id and dx.source = source.id)) as analyzed_source_count
 from
   langvar
-  inner join expr on expr.id = langvar.name_expr
-  inner join expr as script_expr on script_expr.id = langvar.script_expr
+  join expr on expr.id = langvar.name_expr
+  join expr as script_expr on script_expr.id = langvar.script_expr
 where
   uid(langvar.lang_code, langvar.var_code) = $1
 """
@@ -42,8 +42,8 @@ select
   script_expr.txt as script_expr_txt
 from
   langvar
-  inner join expr on expr.id = langvar.name_expr
-  inner join expr as script_expr on script_expr.id = langvar.script_expr
+  join expr on expr.id = langvar.name_expr
+  join expr as script_expr on script_expr.id = langvar.script_expr
 """
 
 EXPR_QUERY = """
@@ -84,8 +84,8 @@ select
   ) as trans_quality
 from
   expr
-  inner join denotationx as denotation on denotation.expr = expr.id
-  inner join denotationx as denotationsrc on denotationsrc.meaning = denotation.meaning
+  join denotationx as denotation on denotation.expr = expr.id
+  join denotationx as denotationsrc on denotationsrc.meaning = denotation.meaning
   and denotationsrc.expr != denotation.expr
 where
   expr.langvar = uid_langvar($1)
@@ -105,9 +105,9 @@ select
   source_editorial.denotation_count as denotation_count_estimate
 from
   source
-  inner join source_editorial on source_editorial.source = source.id
+  join source_editorial on source_editorial.source = source.id
 where
-  source_editorial.submit_file = true
+  source_editorial.submit_file is true
   and exists (select 1 from source_langvar where source_langvar.source = source.id and source_langvar.langvar = uid_langvar('nav-000'))
 order by
   source.id asc
