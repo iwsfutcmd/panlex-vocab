@@ -1,10 +1,8 @@
-import subprocess
-from operator import attrgetter
 import os
 import math
+import asyncio
 
 import regex as re
-import asyncio
 import asyncpg
 
 DEBUG = False
@@ -12,7 +10,6 @@ DEBUG = False
 LANGVAR_CACHE = {}
 ALL_LANGVAR_CACHE = {}
 SOURCE_CACHE = {}
-CHAR_INDEX_CACHE = {}
 PAGE_SIZE = 50
 
 LANGVAR_QUERY = """
@@ -152,9 +149,6 @@ async def query(sql, args=(), fetch="all", conn=None):
         conn = await pool.acquire()
         will_release = True
 
-    # if DEBUG:
-    #     print(cur.mogrify(sql, args).decode())
-
     if fetch == "all":
         result = await conn.fetch(sql, *args)
     elif fetch == "row":
@@ -199,8 +193,8 @@ async def refresh_cache():
 
 async def refresh_cache_langvar(uid, conn):
     print("fetching exprs for " + uid)
-    script = (await get_langvar(uid, conn=conn))["script_expr_txt"]
-    sortfunc = sort_by_script(script)
+    langvar = await get_langvar(uid, conn=conn)
+    sortfunc = sort_by_script(langvar["script_expr_txt"])
     exprs = await query(EXPR_QUERY, (uid,), conn=conn)
     exprs = sorted(exprs, key=lambda x: sortfunc(x["txt_degr"],x["txt"]))
 
@@ -254,8 +248,7 @@ async def get_all_langvars(conn=None):
         return [ALL_LANGVAR_CACHE[uid] for uid in ALL_LANGVAR_CACHE if uid != "*"]
     except KeyError:
         print("fetching all langvar data...")
-        r = await query(ALL_LANGVAR_QUERY, conn=conn)
-        for langvar in r:
+        for langvar in await query(ALL_LANGVAR_QUERY, conn=conn):
             ALL_LANGVAR_CACHE[langvar["uid"]] = langvar
         ALL_LANGVAR_CACHE["*"] = True
         return await get_all_langvars()
