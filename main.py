@@ -3,6 +3,7 @@ import os
 
 from sanic import Sanic, response
 from jinja2 import Template
+import regex as re
 
 import panlex_db
 
@@ -10,8 +11,9 @@ Trn = namedtuple("Trn", ["de_ex", "al_ex"])
 PAGE_RANGE = 2
 
 template = {}
-for t in ["langvar", "vocab"]:
-    template[t] = Template(open(t + ".jinja2").read())
+for file in os.listdir("templates"):
+    name = re.sub(r"\.jinja2$", r"", file)
+    template[name] = Template(open("templates/" + file).read())
 
 app = Sanic()
 
