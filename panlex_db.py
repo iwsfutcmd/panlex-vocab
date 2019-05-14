@@ -211,6 +211,8 @@ async def refresh_cache_langvar(uid, conn):
         copy_uid_expr.append((uid,idx,expr['id'],expr['txt']))
         idx += 1
 
+    await copy_records_to_table('uid_expr', records=copy_uid_expr, columns=['uid','idx','id','txt'], conn=conn)
+
 def sort_by_script(script):
     try:
         matchre = SCRIPT_RE[script]
