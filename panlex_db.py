@@ -113,6 +113,19 @@ order by
   source.id asc
 """
 
+SEARCH_QUERY = """
+select
+  uid_expr.idx
+from
+  uid_expr
+  join expr on expr.id = uid_expr.id
+where
+  uid_expr.uid = $1
+  and expr.txt_degr like $2
+order by uid_expr.idx
+limit 1
+"""
+
 SCRIPT_RE = {
     "Blis": None,
     "Geok": r"\p{Geor}",
@@ -176,7 +189,6 @@ async def refresh_cache():
 
     async with conn.transaction():
         await query('truncate uid_expr', fetch="none", conn=conn)
-        await query('truncate uid_expr_char_index', fetch="none", conn=conn)
 
         uids = [x['uid'] for x in await query('select uid(lang_code,var_code) from langvar order by 1', conn=conn)]
 
@@ -190,38 +202,14 @@ async def refresh_cache_langvar(uid, conn):
     script = (await get_langvar(uid, conn=conn))['script_expr_txt']
     sortfunc = sort_by_script(script)
     exprs = await query(EXPR_QUERY, (uid,), conn=conn)
-    exprs = sorted(exprs, key=lambda x: sortfunc(x['txt_degr']))
+    exprs = sorted(exprs, key=lambda x: sortfunc(x['txt_degr'],x['txt']))
 
     copy_uid_expr = []
     idx = 1
-    index_chars = []
-    index_char_count = {}
 
     for expr in exprs:
         copy_uid_expr.append((uid,idx,expr['id'],expr['txt']))
-
-        if expr['txt_degr']:
-            char = expr['txt_degr'][0]
-            if char in index_char_count:
-                index_char_count[char] += 1
-            elif match_script(char, script):
-                index_chars.append((char,idx))
-                index_char_count[char] = 1
-
         idx += 1
-
-    await copy_records_to_table('uid_expr', records=copy_uid_expr, columns=['uid','idx','id','txt'], conn=conn)
-
-    index_chars = list(filter(lambda x: index_char_count[x[0]] >= 3, index_chars))
-    if index_chars:
-        copy_uid_expr_char_index = []
-        char_idx = 1
-
-        for i in index_chars:
-            copy_uid_expr_char_index.append((uid,char_idx,i[0],i[1]))
-            char_idx += 1
-
-        await copy_records_to_table('uid_expr_char_index', records=copy_uid_expr_char_index, columns=['uid','idx','char','uid_expr_idx'], conn=conn)
 
 def sort_by_script(script):
     try:
@@ -230,12 +218,12 @@ def sort_by_script(script):
         matchre = r"\p{" + script + r"}"
 
     if matchre is None:
-        def sortfunc(string):
-            return string
+        def sortfunc(txt_degr, txt):
+            return (txt_degr, txt)
     else:
-        def sortfunc(string):
+        def sortfunc(txt_degr, txt):
             matchscript = bool(re.match(matchre, string))
-            return (not matchscript, string)
+            return (not matchscript, txt_degr, txt)
 
     return sortfunc
 
@@ -250,9 +238,6 @@ def match_script(char, script):
     else:
         return bool(re.match(matchre, char))
 
-def escape_for_copy(txt):
-    return re.sub(r'\\', r'\\\\', txt)
-
 async def get_langvar(uid, conn=None):
     try:
         return LANGVAR_CACHE[uid]
@@ -262,7 +247,7 @@ async def get_langvar(uid, conn=None):
         return await get_langvar(uid, conn=conn)
 
 async def get_all_langvars(conn=None):
-    try: 
+    try:
         LANGVAR_CACHE["*"]
         return [LANGVAR_CACHE[uid] for uid in LANGVAR_CACHE if uid != "*"]
     except KeyError:
@@ -284,14 +269,6 @@ async def get_page_count(uid):
         expr_count = await query('select count(*) from uid_expr where uid = $1', (uid,), fetch="val")
         PAGE_COUNT_CACHE[uid] = get_page_number(expr_count)
         return await get_page_count(uid)
-
-async def get_char_index(uid):
-    try:
-        return CHAR_INDEX_CACHE[uid]
-    except KeyError:
-        entries = await query('select char, uid_expr_idx as idx from uid_expr_char_index where uid = $1 order by idx', (uid,))
-        CHAR_INDEX_CACHE[uid] = [(x['char'],get_page_number(x['idx'])) for x in entries]
-        return await get_char_index(uid)
 
 def get_page_number(idx):
     return math.ceil(idx / PAGE_SIZE)
@@ -316,3 +293,20 @@ async def get_sources(uid, conn=None):
         return SOURCE_CACHE[uid]
     except KeyError:
         pass
+
+async def get_matching_page(uid, txt, conn=None):
+    txt_degr = await query('select txt_degr($1)', (txt,), fetch="val", conn=conn)
+    if not txt_degr:
+        return None
+
+    txt_degr_like = like_escape(txt_degr) + '%'
+
+    idx = await query(SEARCH_QUERY, (uid, txt_degr_like), fetch="val", conn=conn)
+
+    if idx:
+        return get_page_number(idx)
+    else:
+        return None
+
+def like_escape(txt):
+    return re.sub(r'([\\%_])', r'\\$1', txt)
