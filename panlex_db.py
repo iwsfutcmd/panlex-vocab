@@ -294,13 +294,6 @@ async def get_translated_page(de_uid, al_uid, pageno):
 
     return [(expr, trans_dict[expr["id"]]) for expr in exprs]
 
-# WIP
-async def get_sources(uid, conn=None):
-    try:
-        return SOURCE_CACHE[uid]
-    except KeyError:
-        pass
-
 async def get_matching_page(uid, txt, conn=None):
     txt_degr = await query('select txt_degr($1)', (txt,), fetch="val", conn=conn)
     if not txt_degr:
