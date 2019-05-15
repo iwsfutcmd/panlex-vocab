@@ -222,7 +222,12 @@ async def refresh_cache_langvar(uid, conn):
     analyzed_count = await query(ANALYZED_SOURCE_QUERY, args=(langvar["id"],), fetch="val", conn=conn)
     unanalyzed = await query(UNANALYZED_SOURCE_QUERY, args=(langvar["id"],), fetch="row", conn=conn)
 
-    await query("insert into vocab_langvar (id, expr_count, analyzed_source_count, unanalyzed_source_count, unanalyzed_denotation_estimate) values ($1, $2, $3, $4, $5)", args=(langvar["id"], len(exprs),analyzed_count, unanalyzed["source_count"], unanalyzed["denotation_count"]), fetch="none", conn=conn)
+    row = (langvar["id"], len(exprs), analyzed_count, unanalyzed["source_count"], unanalyzed["denotation_count"])
+    await query("""
+  insert into vocab_langvar
+    (id, expr_count, analyzed_source_count, unanalyzed_source_count, unanalyzed_denotation_estimate)
+    values ($1, $2, $3, $4, $5)
+  """, args=row, fetch="none", conn=conn)
 
 def sort_by_script(script):
     try:
