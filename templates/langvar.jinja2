@@ -19,12 +19,14 @@
         <img src="/vocab/static/images/logo.png">
       </figure>
       <div class="title-container">
-        <h1 class="title">PanLex</h1>
-        <h2 class="subtitle">Languages</h2>
+        <div>
+          <h1 class="title">PanLex</h1>
+          <h2 class="subtitle">Languages</h2>
+        </div>
       </div>
     </header>
     <main>
-      {% block pagination %}
+      {# {% block pagination %}
       <nav class="pagination is-centered" role="navigation" aria-label="pagination">
         <a class="pagination-previous"
           {% if page <= 1 %} disabled {% endif %} 
@@ -57,7 +59,7 @@
           {% endif %}
         </ul>
       </nav>
-      {% endblock %}
+      {% endblock %} #}
 
       <table class="table is-fullwidth is-striped">
         {# <thead>
@@ -115,7 +117,7 @@
         </tfoot> #}
 
       </table>
-      {{ self.pagination() }}
+      {# {{ self.pagination() }} #}
     </main>
   </body>
   {# <script src="/vocab/static/js/index.js"></script> #}

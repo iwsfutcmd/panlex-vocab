@@ -24,7 +24,21 @@
           <h2 class="subtitle">{{ de_lang["name_expr_txt"] }} Vocabulary</h2>
         </div>
         <div>
-          {{ de_lang["expr_count"] }} entries from {{ de_lang["analyzed_source_count"] }} sources
+          <div>{{ de_lang["expr_count"] }} entries from {{ de_lang["analyzed_source_count"] }} sources</div>
+          <div>
+          {%- if de_lang["unanalyzed_source_count"] > 0 -%}
+            {{ de_lang["unanalyzed_source_count"] }} additional
+            {% if de_lang["unanalyzed_source_count"] == 1 %}
+            source
+            {% else %}
+            sources
+            {% endif %}
+            obtained by PanLex and waiting to be analyzed
+          {%- endif -%}
+          {%- if de_lang["unanalyzed_denotation_estimate"] and de_lang["unanalyzed_denotation_estimate"] > 999 -%}
+            ,<br/>containing at least {{ de_lang["unanalyzed_denotation_estimate"] }} entries in this language.
+          {%- endif -%}
+          </div>
         </div>
       </div>
     </header>
