@@ -315,4 +315,4 @@ async def get_matching_page(uid, txt, conn=None):
         return None
 
 def like_escape(txt):
-    return re.sub(r"([\\%_])", r"\\$1", txt)
+    return re.sub(r"([\\%_])", r"\\\1", txt)
