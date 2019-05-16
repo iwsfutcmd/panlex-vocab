@@ -1,43 +1,54 @@
+* {
+  --theme-color: #c82521;
+  --theme-color-light: #df4a34;
+  --theme-color-dark: #700000;
+}
+
 body {
-    padding: 8px;
+  padding: 8px;
 }
 
 header {
-    display: flex;
-    align-items: flex-start;
-    padding-block-end: 8px;
+  display: flex;
+  align-items: flex-start;
+  padding-block-end: 8px;
 }
 
 .title-container {
-    padding-inline-start: 8px;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    inline-size: 100%;
+  padding-inline-start: 8px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  inline-size: 100%;
 }
 
 .pagination-link.is-current {
-    background-color: #C82521;
-    border-color: #C82521;
+  background-color: var(--theme-color);
+  border-color: var(--theme-color);
+}
+
+.input:focus {
+  border-color: var(--theme-color);
+  box-shadow: 0 0 0 0.125em rgb(112, 0, 0, 0.25);
 }
 
 .panlex-language-picker {
-    font-weight: normal;
+  font-weight: normal;
 }
 
 .panlex-language-picker li {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .panlex-language-picker li:hover {
-    background-color: #f5f5f5;
-    color: #0a0a0a;
+  background-color: #f5f5f5;
+  color: #0a0a0a;
 }
 
 .panlex-language-picker li div:last-child {
-    font-size: 0.7rem;
+  font-size: 0.7rem;
 }
 
 .panlex-language-picker li:not(:last-child) {
-    border-block-end: 1px #dbdbdb solid;
+  border-block-end: 1px #dbdbdb solid;
 }
