@@ -22,12 +22,12 @@ select
   vocab_langvar.analyzed_source_count,
   vocab_langvar.unanalyzed_source_count,
   vocab_langvar.unanalyzed_denotation_estimate
-
 from
   langvar
   left join vocab_langvar on vocab_langvar.id = langvar.id
   join expr on expr.id = langvar.name_expr
   join expr as script_expr on script_expr.id = langvar.script_expr
+order by uid
 """
 
 EXPR_QUERY = """
@@ -270,9 +270,9 @@ async def get_all_langvars(conn=None):
         return LANGVAR_LIST
     else:
         print("fetching all langvar data...")
-        for langvar in await query(LANGVAR_QUERY, conn=conn):
+        LANGVAR_LIST = await query(LANGVAR_QUERY, conn=conn)
+        for langvar in LANGVAR_LIST:
             LANGVAR_CACHE[langvar["uid"]] = langvar
-        LANGVAR_LIST = [LANGVAR_CACHE[uid] for uid in sorted(LANGVAR_CACHE.keys())]
         return await get_all_langvars()
 
 async def get_expr_page(uid, pageno):
