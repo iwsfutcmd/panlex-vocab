@@ -93,6 +93,7 @@
                 id="de-lang-picker"
                 list-class="dropdown-content"
                 list-item-class="dropdown-item"
+                placeholder="Select language"
               >
             </th>
             <th>
@@ -105,6 +106,7 @@
                 id="al-lang-picker"
                 list-class="dropdown-content"
                 list-item-class="dropdown-item"
+                placeholder="Target language"
               >
             </th>
           </tr>
@@ -130,16 +132,14 @@
               {{trn[1][0]['txt']}}
               {% endif %}
             {% endif %}
-            {#  #}
             </td>
           </tr>
           {%- endfor -%}
         </tbody>
         <tfoot>
           <tr>
-            <th>{{ de_lang_name }}</th>
-            <th>{{ al_lang_name }}</th>
-              {# <panlex-language-picker></panlex-language-picker> #}
+            <th>{{ de_lang['name_expr_txt'] }}</th>
+            <th>{{ al_lang['name_expr_txt'] }}</th>
           </tr>
         </tfoot>
 
